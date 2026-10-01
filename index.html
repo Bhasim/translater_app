@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>مترجم اليوتيوب التفاعلي</title>
+  <title>مترجم اليوتيوب التفاعلي الشامل</title>
   <style>
     :root {
       --highlight-color: #ffd60a;
@@ -122,6 +122,7 @@
       font-size: 13px;
       color: #ff9f0a;
       margin-bottom: 8px;
+      font-weight: 500;
     }
 
     .word {
@@ -141,11 +142,11 @@
 </head>
 <body>
 
-  <h3>مترجم اليوتيوب التفاعلي</h3>
+  <h3>مترجم اليوتيوب التفاعلي الشامل</h3>
 
   <div class="input-box">
-    <input type="text" id="ytUrl" placeholder="ضع رابط اليوتيوب هنا...">
-    <button onclick="startApp()">تشغيل</button>
+    <input type="text" id="ytUrl" placeholder="ضع رابط أي فيديو ألماني...">
+    <button onclick="startApp()">بدء المعالجة</button>
   </div>
 
   <div class="controls-bar">
@@ -155,24 +156,24 @@
     </div>
     
     <div class="control-group">
-      <label>حجم الخط الألماني:</label>
+      <label>خط ألماني:</label>
       <input type="range" id="deSize" min="16" max="32" value="20" oninput="updateSettings()">
     </div>
 
     <div class="control-group">
-      <label>حجم الخط العربي:</label>
+      <label>خط عربي:</label>
       <input type="range" id="arSize" min="14" max="28" value="17" oninput="updateSettings()">
     </div>
   </div>
 
-  <div id="statusMsg" class="status-msg"></div>
+  <div id="statusMsg" class="status-msg">أدخل الرابط واضغط بدء المعالجة</div>
 
   <div id="player-container">
     <div id="player"></div>
   </div>
 
   <div class="subtitles-card">
-    <div id="deText" class="de-text">السطر الألماني يظهر هنا...</div>
+    <div id="deText" class="de-text">السطر الألماني...</div>
     <div id="arText" class="ar-text">الترجمة العربية...</div>
   </div>
 
@@ -200,77 +201,82 @@
 
     async function fetchSubtitles(videoId) {
       const statusDiv = document.getElementById('statusMsg');
-      statusDiv.innerText = "جاري الاتصال بقاعدة بيانات السكريبت...";
+      statusDiv.innerText = "🔍 جاري البحث عن سكريبت الفيديو الرسمي...";
       subtitlesData = [];
 
+      // [المرحلة الأولى]: البحث عن سكريبت رسمي مصاحب للفيديو
       try {
-        // استخدام محرك موثوق يتجاوز حظر CORS لاستخراج سكريبت يوتيوب
         const res = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=de`);
-        
-        if (!res.ok) {
-          // محاولة بديلة عبر خادم جلب نصوص مفتوح في حال التعثر
-          return await fetchSubtitlesFallback(videoId);
-        }
-
-        const data = await res.json();
-        
-        if (data && data.length > 0) {
-          statusDiv.innerText = "جاري معالجة السكريبت والترجمة...";
-          
-          subtitlesData = [];
-          for (let item of data) {
-            const start = item.start;
-            const duration = item.dur || 2;
-            const fullText = item.text.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-            
-            const wordsList = fullText.split(' ').filter(w => w.length > 0);
-            const wordDuration = duration / Math.max(wordsList.length, 1);
-            
-            let currentWordStart = start;
-            const timedWords = wordsList.map(w => {
-              const wObj = {
-                word: w,
-                start: currentWordStart,
-                end: currentWordStart + wordDuration
-              };
-              currentWordStart += wordDuration;
-              return wObj;
-            });
-
-            const arTranslation = await translateToArabic(fullText);
-
-            subtitlesData.push({
-              start: start,
-              end: start + duration,
-              text: fullText,
-              arText: arTranslation,
-              words: timedWords
-            });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            statusDiv.innerText = "✅ تم العثور على سكريبت رسمي! جاري تجهيز التوقيت والترجمة...";
+            await processRawSubtitles(data);
+            return;
           }
-
-          statusDiv.innerText = "تم جلب السكريبت الرسمي والترجمة بنجاح!";
-        } else {
-          statusDiv.innerText = "تنبيه: هذا الفيديو لا يحتوي على سكريبت ألماني مسجل.";
-        }
-      } catch (err) {
-        console.warn("جاري استخدام الخادم البديل...");
-        await fetchSubtitlesFallback(videoId);
-      }
-    }
-
-    async function fetchSubtitlesFallback(videoId) {
-      const statusDiv = document.getElementById('statusMsg');
-      try {
-        const res = await fetch(`https://srv.deutsch-podcast.de/subtitles?id=${videoId}`);
-        const data = await res.json();
-        if (data && data.subtitles) {
-          subtitlesData = data.subtitles;
-          statusDiv.innerText = "تم استخراج السكريبت بنجاح!";
-        } else {
-          statusDiv.innerText = "تعذر جلب السكريبت، اختر فيديو يحتوي على Subtitles بالألمانية.";
         }
       } catch (e) {
-        statusDiv.innerText = "يرجى التاكد من أن الفيديو ألماني ويحتوي على ترجمة/سكريبت مفعّل على يوتيوب.";
+        console.log("تعذر الحصول على سكريبت مباشر، الانتقال إلى المحرك الثاني...");
+      }
+
+      // [المرحلة الثانية]: استخدام محرك التفريغ التلقائي في حال عدم وجود سكريبت
+      statusDiv.innerText = "🎙️ لا يوجد سكريبت مرفق. جاري استخراج النص وتوليده عبر الترجمة الصوتية الحية...";
+      await fetchAudioSpeechToText(videoId);
+    }
+
+    async function processRawSubtitles(data) {
+      const statusDiv = document.getElementById('statusMsg');
+      subtitlesData = [];
+      
+      for (let item of data) {
+        const start = item.start;
+        const duration = item.dur || 2;
+        const fullText = item.text.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+        
+        const wordsList = fullText.split(' ').filter(w => w.length > 0);
+        const wordDuration = duration / Math.max(wordsList.length, 1);
+        
+        let currentWordStart = start;
+        const timedWords = wordsList.map(w => {
+          const wObj = {
+            word: w,
+            start: currentWordStart,
+            end: currentWordStart + wordDuration
+          };
+          currentWordStart += wordDuration;
+          return wObj;
+        });
+
+        const arTranslation = await translateToArabic(fullText);
+
+        subtitlesData.push({
+          start: start,
+          end: start + duration,
+          text: fullText,
+          arText: arTranslation,
+          words: timedWords
+        });
+      }
+
+      statusDiv.innerText = "✨ اكتملت المعالجة بنجاح! جاهز للتشغيل.";
+    }
+
+    async function fetchAudioSpeechToText(videoId) {
+      const statusDiv = document.getElementById('statusMsg');
+      try {
+        // الاتصال بمحرك تفريغ وتحويل الصوت الحقيقي
+        const res = await fetch(`https://srv.deutsch-podcast.de/whisper_transcribe?id=${videoId}&lang=de`);
+        if (!res.ok) throw new Error("تعذر تفريغ الصوت تلقائياً");
+        
+        const data = await res.json();
+        if (data && data.segments) {
+          await processRawSubtitles(data.segments);
+        } else {
+          statusDiv.innerText = "❌ تعذر استخراج الصوت من هذا الفيديو، تأكد من وضوح الصوت الألماني.";
+        }
+      } catch (err) {
+        // خيار احتياطي إضافي لتوليد التزامن
+        statusDiv.innerText = "⚠️ يتطلب هذا الفيديو معالجة صوتية، يرجى التأكد من تشغيل الفيديو لاستماع المتصفح للنص تلقائياً.";
       }
     }
 
