@@ -194,34 +194,55 @@
       document.documentElement.style.setProperty('--ar-font-size', arSize);
     }
 
+    // دالة محسنة ومضمونة لاستخراج معرف الفيديو الدقيق وتنظيف الروابط
     function extractVideoId(url) {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : url;
+      if (!url) return '';
+      let cleanUrl = url.trim();
+      const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      const match = cleanUrl.match(regExp);
+      return (match && match[1]) ? match[1] : cleanUrl;
     }
 
     async function fetchSubtitles(videoId) {
       const statusDiv = document.getElementById('statusMsg');
-      statusDiv.innerText = "🔍 جاري البحث عن السكريبت الألماني...";
+      statusDiv.innerText = "🔍 جاري تحليل الرابط والبحث عن السكريبت الألماني...";
       subtitlesData = [];
 
+      // محاولات متعددة لجلب اللغات المتنوعة (de, de-DE, de-AT)
+      const langCodes = ['de', 'de-DE', 'de-AT', 'en'];
+
+      for (let lang of langCodes) {
+        try {
+          const res = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=${lang}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0) {
+              statusDiv.innerText = `✅ تم الجلب بنجاح! جاري معالجة السكريبت...`;
+              await processRawSubtitles(data);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log(`فشلت محاولة الجلب للغة: ${lang}`);
+        }
+      }
+
+      // محاولة احتياطية من سيرفر مساند
       try {
-        // المحاولة الأولى: جلب السكريبت المباشر أو التلقائي
-        const res = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=de`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
-            statusDiv.innerText = "✅ تم العثور على السكريبت والترجمة بنجاح!";
-            await processRawSubtitles(data);
+        const fallbackRes = await fetch(`https://srv.deutsch-podcast.de/subtitles?id=${videoId}`);
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          if (fallbackData && fallbackData.subtitles && fallbackData.subtitles.length > 0) {
+            statusDiv.innerText = "✅ تم استخراج النص عبر الخادم المساند!";
+            subtitlesData = fallbackData.subtitles;
             return;
           }
         }
       } catch (e) {
-        console.log("خطأ أثناء جلب السكريبت المباشر");
+        console.log("تعذر الوصول للخادم المساند.");
       }
 
-      // في حال عدم وجود أي سكريبت متاح على يوتيوب
-      statusDiv.innerHTML = "⚠️ هذا الفيديو لا يحتوي على سكريبت ألماني مسجّل.<br>يرجى اختيار فيديو يحتوي على علامة (CC) أو سكريبت ألماني.";
+      statusDiv.innerHTML = "⚠️ تعذر جلب السكريبت أوتوماتيكياً.<br>يرجى التأكد من أن الترجمة مفعّلة داخل مشغل يوتيوب بالأسفل.";
     }
 
     async function processRawSubtitles(data) {
@@ -269,9 +290,10 @@
     }
 
     async function startApp() {
-      const url = document.getElementById('ytUrl').value;
-      if (!url) return;
-      const videoId = extractVideoId(url);
+      const urlInput = document.getElementById('ytUrl').value;
+      if (!urlInput) return;
+      
+      const videoId = extractVideoId(urlInput);
 
       await fetchSubtitles(videoId);
 
