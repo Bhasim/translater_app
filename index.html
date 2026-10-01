@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>مترجم اليوتيوب التفاعلي الشامل</title>
+  <title>مترجم اليوتيوب التفاعلي</title>
   <style>
     :root {
       --highlight-color: #ffd60a;
@@ -123,6 +123,7 @@
       color: #ff9f0a;
       margin-bottom: 8px;
       font-weight: 500;
+      line-height: 1.4;
     }
 
     .word {
@@ -142,10 +143,10 @@
 </head>
 <body>
 
-  <h3>مترجم اليوتيوب التفاعلي الشامل</h3>
+  <h3>مترجم اليوتيوب التفاعلي</h3>
 
   <div class="input-box">
-    <input type="text" id="ytUrl" placeholder="ضع رابط أي فيديو ألماني...">
+    <input type="text" id="ytUrl" placeholder="ضع رابط الفيديو هنا...">
     <button onclick="startApp()">بدء المعالجة</button>
   </div>
 
@@ -173,7 +174,7 @@
   </div>
 
   <div class="subtitles-card">
-    <div id="deText" class="de-text">السطر الألماني...</div>
+    <div id="deText" class="de-text">السطر الألماني يظهر هنا...</div>
     <div id="arText" class="ar-text">الترجمة العربية...</div>
   </div>
 
@@ -201,31 +202,29 @@
 
     async function fetchSubtitles(videoId) {
       const statusDiv = document.getElementById('statusMsg');
-      statusDiv.innerText = "🔍 جاري البحث عن سكريبت الفيديو الرسمي...";
+      statusDiv.innerText = "🔍 جاري البحث عن السكريبت الألماني...";
       subtitlesData = [];
 
-      // [المرحلة الأولى]: البحث عن سكريبت رسمي مصاحب للفيديو
       try {
+        // المحاولة الأولى: جلب السكريبت المباشر أو التلقائي
         const res = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=de`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
-            statusDiv.innerText = "✅ تم العثور على سكريبت رسمي! جاري تجهيز التوقيت والترجمة...";
+            statusDiv.innerText = "✅ تم العثور على السكريبت والترجمة بنجاح!";
             await processRawSubtitles(data);
             return;
           }
         }
       } catch (e) {
-        console.log("تعذر الحصول على سكريبت مباشر، الانتقال إلى المحرك الثاني...");
+        console.log("خطأ أثناء جلب السكريبت المباشر");
       }
 
-      // [المرحلة الثانية]: استخدام محرك التفريغ التلقائي في حال عدم وجود سكريبت
-      statusDiv.innerText = "🎙️ لا يوجد سكريبت مرفق. جاري استخراج النص وتوليده عبر الترجمة الصوتية الحية...";
-      await fetchAudioSpeechToText(videoId);
+      // في حال عدم وجود أي سكريبت متاح على يوتيوب
+      statusDiv.innerHTML = "⚠️ هذا الفيديو لا يحتوي على سكريبت ألماني مسجّل.<br>يرجى اختيار فيديو يحتوي على علامة (CC) أو سكريبت ألماني.";
     }
 
     async function processRawSubtitles(data) {
-      const statusDiv = document.getElementById('statusMsg');
       subtitlesData = [];
       
       for (let item of data) {
@@ -257,27 +256,6 @@
           words: timedWords
         });
       }
-
-      statusDiv.innerText = "✨ اكتملت المعالجة بنجاح! جاهز للتشغيل.";
-    }
-
-    async function fetchAudioSpeechToText(videoId) {
-      const statusDiv = document.getElementById('statusMsg');
-      try {
-        // الاتصال بمحرك تفريغ وتحويل الصوت الحقيقي
-        const res = await fetch(`https://srv.deutsch-podcast.de/whisper_transcribe?id=${videoId}&lang=de`);
-        if (!res.ok) throw new Error("تعذر تفريغ الصوت تلقائياً");
-        
-        const data = await res.json();
-        if (data && data.segments) {
-          await processRawSubtitles(data.segments);
-        } else {
-          statusDiv.innerText = "❌ تعذر استخراج الصوت من هذا الفيديو، تأكد من وضوح الصوت الألماني.";
-        }
-      } catch (err) {
-        // خيار احتياطي إضافي لتوليد التزامن
-        statusDiv.innerText = "⚠️ يتطلب هذا الفيديو معالجة صوتية، يرجى التأكد من تشغيل الفيديو لاستماع المتصفح للنص تلقائياً.";
-      }
     }
 
     async function translateToArabic(text) {
@@ -302,6 +280,10 @@
       } else {
         player = new YT.Player('player', {
           videoId: videoId,
+          playerVars: {
+            'cc_load_policy': 1,
+            'cc_lang_pref': 'de'
+          },
           events: {
             'onStateChange': onPlayerStateChange
           }
@@ -319,8 +301,8 @@
 
     function syncSubtitles() {
       if (!player || !player.getCurrentTime || subtitlesData.length === 0) return;
+      
       const time = player.getCurrentTime();
-
       const current = subtitlesData.find(s => time >= s.start && time <= s.end);
 
       const deDiv = document.getElementById('deText');
