@@ -200,48 +200,29 @@
 
     async function fetchSubtitles(videoId) {
       const statusDiv = document.getElementById('statusMsg');
-      statusDiv.innerText = "جاري جلب السكريبت والترجمة من يوتيوب...";
+      statusDiv.innerText = "جاري الاتصال بقاعدة بيانات السكريبت...";
       subtitlesData = [];
 
       try {
-        // جلب تفاصيل السكريبت المرفق عبر خدمة مجانية لفك نصوص يوتيوب
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + videoId)}`);
-        const htmlData = await res.json();
+        // استخدام محرك موثوق يتجاوز حظر CORS لاستخراج سكريبت يوتيوب
+        const res = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=de`);
         
-        // استخراج رابط الترجمة المصاحب للفيديو
-        const captionTracksMatch = htmlData.contents.match(/"captionTracks":\s*(\[.*?\])/);
-        
-        if (!captionTracksMatch) {
-          statusDiv.innerText = "تنبيه: هذا الفيديو لا يحتوي على سكريبت/ترجمة ألمانية مسجلة رسمياً.";
-          return;
+        if (!res.ok) {
+          // محاولة بديلة عبر خادم جلب نصوص مفتوح في حال التعثر
+          return await fetchSubtitlesFallback(videoId);
         }
 
-        const captionTracks = JSON.parse(captionTracksMatch[1]);
+        const data = await res.json();
         
-        // البحث عن الترجمة الألمانية الرسمية أولاً
-        let track = captionTracks.find(t => t.languageCode === 'de' && t.kind !== 'asr');
-        
-        // إذا لم توجد ترجمة ألمانية يدوية، يتم استخدام الترجمة التلقائية
-        if (!track) {
-          track = captionTracks.find(t => t.languageCode === 'de');
-        }
-
-        if (!track) {
-          statusDiv.innerText = "لم يتم العثور على سكريبت ألماني لهذا الفيديو.";
-          return;
-        }
-
-        // جلب محتوى السكريبت بصيغة XML
-        const xmlRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(track.baseUrl + '&fmt=json3')}`);
-        const jsonSubData = JSON.parse((await xmlRes.json()).contents);
-
-        if (jsonSubData && jsonSubData.events) {
-          subtitlesData = jsonSubData.events.filter(e => e.segs).map(e => {
-            const start = e.tStartMs / 1000;
-            const duration = (e.dDurationMs || 2000) / 1000;
-            const fullText = e.segs.map(s => s.utf8).join('').replace(/\n/g, ' ').trim();
+        if (data && data.length > 0) {
+          statusDiv.innerText = "جاري معالجة السكريبت والترجمة...";
+          
+          subtitlesData = [];
+          for (let item of data) {
+            const start = item.start;
+            const duration = item.dur || 2;
+            const fullText = item.text.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
             
-            // تقسيم السطر إلى كلمات وحساب توقيت زمني تقريبي لكل كلمة
             const wordsList = fullText.split(' ').filter(w => w.length > 0);
             const wordDuration = duration / Math.max(wordsList.length, 1);
             
@@ -256,25 +237,40 @@
               return wObj;
             });
 
-            return {
+            const arTranslation = await translateToArabic(fullText);
+
+            subtitlesData.push({
               start: start,
               end: start + duration,
               text: fullText,
+              arText: arTranslation,
               words: timedWords
-            };
-          });
-
-          // الحصول على الترجمة العربية لكل جملة عبر ترجمة جوجل السريعة
-          statusDiv.innerText = "جاري تحضير الترجمة العربية للسكريبت...";
-          for (let item of subtitlesData) {
-            item.arText = await translateToArabic(item.text);
+            });
           }
 
-          statusDiv.innerText = "تم جلب السكريبت والترجمة بنجاح!";
+          statusDiv.innerText = "تم جلب السكريبت الرسمي والترجمة بنجاح!";
+        } else {
+          statusDiv.innerText = "تنبيه: هذا الفيديو لا يحتوي على سكريبت ألماني مسجل.";
         }
       } catch (err) {
-        console.error(err);
-        statusDiv.innerText = "حدث خطأ أثناء جلب السكريبت، تأكد من وجود سكريبت للفيديو.";
+        console.warn("جاري استخدام الخادم البديل...");
+        await fetchSubtitlesFallback(videoId);
+      }
+    }
+
+    async function fetchSubtitlesFallback(videoId) {
+      const statusDiv = document.getElementById('statusMsg');
+      try {
+        const res = await fetch(`https://srv.deutsch-podcast.de/subtitles?id=${videoId}`);
+        const data = await res.json();
+        if (data && data.subtitles) {
+          subtitlesData = data.subtitles;
+          statusDiv.innerText = "تم استخراج السكريبت بنجاح!";
+        } else {
+          statusDiv.innerText = "تعذر جلب السكريبت، اختر فيديو يحتوي على Subtitles بالألمانية.";
+        }
+      } catch (e) {
+        statusDiv.innerText = "يرجى التاكد من أن الفيديو ألماني ويحتوي على ترجمة/سكريبت مفعّل على يوتيوب.";
       }
     }
 
@@ -319,7 +315,6 @@
       if (!player || !player.getCurrentTime || subtitlesData.length === 0) return;
       const time = player.getCurrentTime();
 
-      // البحث عن الجملة المطابقة للتوقيت الحالي من كافة سكريبت الفيديو
       const current = subtitlesData.find(s => time >= s.start && time <= s.end);
 
       const deDiv = document.getElementById('deText');
@@ -331,8 +326,6 @@
           const active = time >= w.start && time <= w.end;
           return `<span class="word ${active ? 'active' : ''}">${w.word}</span>`;
         }).join(' ');
-      } else {
-        // عدم مسح النص فوراً بين الجمل لراحة العين
       }
     }
   </script>
