@@ -1,399 +1,336 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>مترجم اليوتيوب التفاعلي</title>
-  <style>
-    :root {
-      --highlight-color: #ffd60a;
-      --de-font-size: 20px;
-      --ar-font-size: 17px;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #000;
-      color: #fff;
-      margin: 0;
-      padding: 15px;
-      text-align: center;
-    }
-    h3 { margin-top: 5px; font-size: 18px; color: #f5f5f7; }
-    
-    .input-box {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #333;
-      background: #1c1c1e;
-      color: #fff;
-      font-size: 14px;
-      -webkit-appearance: none;
-    }
-    button {
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: none;
-      background: #0a84ff;
-      color: #fff;
-      font-weight: bold;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .controls-bar {
-      background: #1c1c1e;
-      border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 15px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: space-around;
-      align-items: center;
-      border: 1px solid #2c2c2e;
-      font-size: 13px;
-    }
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .control-group label { color: #8e8e93; }
-    .control-group input[type="color"] {
-      border: none;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: none;
-      cursor: pointer;
-    }
-    .control-group input[type="range"] {
-      width: 80px;
-    }
-    
-    #player-container {
-      position: relative;
-      padding-bottom: 56.25%;
-      height: 0;
-      overflow: hidden;
-      border-radius: 12px;
-      background: #111;
-      margin-bottom: 15px;
-    }
-    #player-container iframe {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      border: none;
-    }
-
-    .subtitles-card {
-      background: #1c1c1e;
-      border-radius: 12px;
-      padding: 15px;
-      min-height: 90px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      border: 1px solid #2c2c2e;
-    }
-    .de-text {
-      font-size: var(--de-font-size);
-      color: #e5e5ea;
-      direction: ltr;
-      margin-bottom: 10px;
-      line-height: 1.4;
-    }
-    .ar-text {
-      font-size: var(--ar-font-size);
-      color: #30d158;
-      font-weight: 500;
-    }
-
-    .status-msg {
-      font-size: 13px;
-      color: #ff9f0a;
-      margin-bottom: 8px;
-      font-weight: 500;
-      line-height: 1.4;
-    }
-
-    .word {
-      display: inline-block;
-      padding: 0 3px;
-      transition: all 0.1s ease;
-    }
-    .word.active {
-      color: var(--highlight-color);
-      font-weight: bold;
-      transform: scale(1.15);
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-      text-shadow: 0 0 5px var(--highlight-color);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مترجم اليوتيوب التفاعلي</title>
+<style>
+:root{
+  --hl:#ffd60a; --de:20px; --ar:17px;
+  --bg:#000; --card:#1c1c1e; --line:#2c2c2e; --mut:#8e8e93; --blue:#0a84ff; --green:#30d158;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:14px;padding-bottom:40px;background:var(--bg);color:#fff;text-align:center;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+h1{font-size:18px;margin:4px 0 12px;color:#f5f5f7}
+.row{display:flex;gap:8px;margin-bottom:10px}
+input[type=text]{flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid #333;background:var(--card);color:#fff;font-size:16px;direction:ltr}
+button{padding:10px 14px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+button.sec{background:#2c2c2e;font-weight:500}
+button:disabled{opacity:.5}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px;
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:space-around;align-items:center;font-size:13px}
+.bar label{color:var(--mut);margin-inline-start:6px}
+.bar input[type=color]{width:28px;height:28px;border:0;border-radius:50%;background:none;padding:0;vertical-align:middle}
+.bar input[type=range]{width:90px;vertical-align:middle}
+#status{font-size:13px;color:#ff9f0a;margin-bottom:10px;line-height:1.5;min-height:20px}
+#status.ok{color:var(--green)}
+#pc{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#111;margin-bottom:12px}
+#pc iframe,#pc #player{position:absolute;inset:0;width:100%;height:100%;border:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:96px;
+  display:flex;flex-direction:column;justify-content:center;gap:10px}
+#de{font-size:var(--de);direction:ltr;line-height:1.5;color:#e5e5ea}
+#ar{font-size:var(--ar);color:var(--green);font-weight:500;line-height:1.5}
+.w{display:inline-block;padding:0 3px;margin:0 1px;border-radius:5px;transition:background .08s,color .08s}
+.w.on{color:#000;background:var(--hl);font-weight:700}
+.tools{display:flex;gap:8px;justify-content:center;margin:12px 0}
+#manual{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;text-align:right;font-size:13px;color:var(--mut);line-height:1.6}
+#manual textarea{width:100%;height:110px;margin:8px 0;background:#000;color:#fff;border:1px solid #333;border-radius:8px;padding:8px;direction:ltr;font-size:13px}
+#list{display:none;max-height:340px;overflow-y:auto;text-align:start;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.ln{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.ln:last-child{border:0}
+.ln.cur{background:#26262a;box-shadow:inset 3px 0 0 var(--hl)}
+.ln .d{direction:ltr;text-align:left;font-size:15px;color:#e5e5ea}
+.ln .a{font-size:14px;color:var(--green);margin-top:3px;min-height:1em}
+.ln .t{font-size:11px;color:var(--mut);direction:ltr;text-align:left}
+</style>
 </head>
 <body>
+<h1>مترجم اليوتيوب التفاعلي</h1>
 
-  <h3>مترجم اليوتيوب التفاعلي</h3>
+<div class="row">
+  <input type="text" id="url" placeholder="ضع رابط الفيديو هنا..." autocomplete="off" autocapitalize="off" spellcheck="false">
+  <button id="go">بدء المعالجة</button>
+</div>
 
-  <div class="input-box">
-    <input type="text" id="ytUrl" placeholder="ضع رابط الفيديو هنا...">
-    <button onclick="startApp()">بدء المعالجة</button>
+<div class="bar">
+  <span><label for="hlc">لون التظليل:</label><input type="color" id="hlc" value="#ffd60a"></span>
+  <span><label for="des">خط ألماني:</label><input type="range" id="des" min="16" max="34" value="20"></span>
+  <span><label for="ars">خط عربي:</label><input type="range" id="ars" min="14" max="30" value="17"></span>
+</div>
+
+<div id="status">أدخل الرابط واضغط بدء المعالجة</div>
+<div id="pc"><div id="player"></div></div>
+
+<div class="card"><div id="de">السطر الألماني يظهر هنا...</div><div id="ar">الترجمة العربية...</div></div>
+
+<div class="tools">
+  <button class="sec" id="tList">عرض السكريبت كاملاً</button>
+  <button class="sec" id="tManual">إدخال السكريبت يدوياً</button>
+</div>
+
+<div id="list"></div>
+
+<div id="manual">
+  إذا تعذّر الجلب التلقائي: الصق نص الترجمة بصيغة SRT / VTT هنا، أو اختر ملفاً (.srt / .vtt).
+  <textarea id="raw" placeholder="00:00:01,000 --> 00:00:03,500&#10;Hallo und willkommen"></textarea>
+  <div class="row" style="margin:0">
+    <button id="useRaw">استخدام النص</button>
+    <button class="sec" onclick="document.getElementById('file').click()">رفع ملف</button>
+    <input type="file" id="file" accept=".srt,.vtt,.txt" hidden>
   </div>
+</div>
 
-  <div class="controls-bar">
-    <div class="control-group">
-      <label>لون التظليل:</label>
-      <input type="color" id="colorPicker" value="#ffd60a" oninput="updateSettings()">
-    </div>
-    
-    <div class="control-group">
-      <label>خط ألماني:</label>
-      <input type="range" id="deSize" min="16" max="32" value="20" oninput="updateSettings()">
-    </div>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+const $ = id => document.getElementById(id);
+let player, apiReady, cues = [], cur = -1, raf = 0, wordEls = [], activeW = -1, token = 0;
+const apiP = new Promise(r => apiReady = r);
+window.onYouTubeIframeAPIReady = () => apiReady();
 
-    <div class="control-group">
-      <label>خط عربي:</label>
-      <input type="range" id="arSize" min="14" max="28" value="17" oninput="updateSettings()">
-    </div>
-  </div>
+/* ---------- الإعدادات (تُحفظ في الجهاز) ---------- */
+function applySettings(save = true) {
+  const s = document.documentElement.style;
+  s.setProperty('--hl', $('hlc').value);
+  s.setProperty('--de', $('des').value + 'px');
+  s.setProperty('--ar', $('ars').value + 'px');
+  if (save) try { localStorage.setItem('yt-de-set', JSON.stringify({c:$('hlc').value, d:$('des').value, a:$('ars').value})); } catch (e) {}
+}
+try {
+  const s = JSON.parse(localStorage.getItem('yt-de-set') || 'null');
+  if (s) { $('hlc').value = s.c; $('des').value = s.d; $('ars').value = s.a; }
+} catch (e) {}
+['hlc','des','ars'].forEach(i => $(i).addEventListener('input', () => applySettings()));
+applySettings(false);
 
-  <div id="statusMsg" class="status-msg">أدخل الرابط واضغط بدء المعالجة</div>
+function status(msg, ok) { const s = $('status'); s.innerHTML = msg; s.className = ok ? 'ok' : ''; }
 
-  <div id="player-container">
-    <div id="player"></div>
-  </div>
+/* ---------- أدوات الشبكة ---------- */
+const PROXIES = [
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)
+];
+async function fetchT(url, ms = 12000) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try { return await fetch(url, {signal: c.signal}); } finally { clearTimeout(t); }
+}
+// يجرّب عدة وسطاء حتى ينجح أحدهم ويحقق شرط الصحة
+async function viaProxy(url, valid) {
+  for (const p of PROXIES) {
+    try {
+      const r = await fetchT(p(url));
+      if (!r.ok) continue;
+      const t = await r.text();
+      if (valid(t)) return t;
+    } catch (e) {}
+  }
+  throw new Error('proxy');
+}
 
-  <div class="subtitles-card">
-    <div id="deText" class="de-text">السطر الألماني يظهر هنا...</div>
-    <div id="arText" class="ar-text">الترجمة العربية...</div>
-  </div>
+/* ---------- استخراج الرابط ---------- */
+function extractId(u) {
+  u = (u || '').trim();
+  const m = u.match(/(?:youtu\.be\/|[?&]v=|\/(?:embed|shorts|live|v)\/)([\w-]{11})/);
+  if (m) return m[1];
+  return /^[\w-]{11}$/.test(u) ? u : '';
+}
 
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script>
-    let player;
-    let timer;
-    let subtitlesData = [];
+/* ---------- جلب السكريبت ---------- */
+function grabArray(html, key) {
+  const i = html.indexOf(key); if (i < 0) return null;
+  let s = html.indexOf('[', i), d = 0, str = false;
+  for (let k = s; k < html.length; k++) {
+    const ch = html[k];
+    if (str) { if (ch === '\\') k++; else if (ch === '"') str = false; continue; }
+    if (ch === '"') str = true;
+    else if (ch === '[') d++;
+    else if (ch === ']' && --d === 0) return JSON.parse(html.slice(s, k + 1));
+  }
+  return null;
+}
 
-    function updateSettings() {
-      const color = document.getElementById('colorPicker').value;
-      const deSize = document.getElementById('deSize').value + 'px';
-      const arSize = document.getElementById('arSize').value + 'px';
+async function fetchCues(id) {
+  const page = await viaProxy(`https://www.youtube.com/watch?v=${id}&hl=de`, t => t.includes('captionTracks'));
+  const tracks = grabArray(page, '"captionTracks"');
+  if (!tracks || !tracks.length) throw new Error('notracks');
+  const de = tracks.filter(t => t.languageCode && t.languageCode.startsWith('de'));
+  const track = de.find(t => t.kind !== 'asr') || de[0] || tracks[0];
+  const raw = await viaProxy(track.baseUrl.replace(/&fmt=[^&]*/, '') + '&fmt=json3', t => t.trim().startsWith('{'));
+  return parseJson3(JSON.parse(raw));
+}
 
-      document.documentElement.style.setProperty('--highlight-color', color);
-      document.documentElement.style.setProperty('--de-font-size', deSize);
-      document.documentElement.style.setProperty('--ar-font-size', arSize);
-    }
+function wordsFromEvent(ev, start, end) {
+  const segs = ev.segs.filter(s => s.utf8 && s.utf8.trim());
+  const timed = segs.length > 1 && segs.some(s => s.tOffsetMs);
+  let out = [];
+  if (timed) {
+    segs.forEach(s => s.utf8.trim().split(/\s+/).forEach(w => out.push({w, s: start + (s.tOffsetMs || 0) / 1000})));
+    out.forEach((o, i) => o.e = i + 1 < out.length ? out[i + 1].s : end);
+  } else {
+    const ws = segs.map(s => s.utf8).join('').replace(/\s+/g, ' ').trim().split(' ');
+    const total = ws.reduce((a, w) => a + w.length + 1, 0);
+    let t = start;
+    ws.forEach(w => { const d = (end - start) * (w.length + 1) / total; out.push({w, s: t, e: t + d}); t += d; });
+  }
+  return out;
+}
 
-    // استخراج ID الفيديو بدقة مع تنظيف أي رموز مشاركة إضافية
-    function extractVideoId(url) {
-      if (!url) return '';
-      let cleanUrl = url.trim();
-      const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-      const match = cleanUrl.match(regExp);
-      return (match && match[1]) ? match[1] : cleanUrl;
-    }
+function parseJson3(j) {
+  const list = [];
+  (j.events || []).forEach(ev => {
+    if (!ev.segs) return;
+    const text = ev.segs.map(s => s.utf8 || '').join('').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    const s = ev.tStartMs / 1000, e = s + (ev.dDurationMs || 2000) / 1000;
+    list.push({s, e, text, words: wordsFromEvent(ev, s, e)});
+  });
+  return finalize(list);
+}
 
-    async function fetchSubtitles(videoId) {
-      const statusDiv = document.getElementById('statusMsg');
-      statusDiv.innerText = "🔍 جاري الاتصال بخادم الاستخراج لتجهيز السكريبت...";
-      subtitlesData = [];
+/* ---------- SRT / VTT ---------- */
+function parseSub(txt) {
+  const tm = x => { const p = x.replace(',', '.').split(':').map(parseFloat); return p.length === 3 ? p[0]*3600 + p[1]*60 + p[2] : p[0]*60 + p[1]; };
+  const list = [];
+  txt.replace(/\r/g, '').split(/\n{2,}/).forEach(b => {
+    const m = b.match(/([\d:.,]+)\s*-->\s*([\d:.,]+)[^\n]*\n([\s\S]+)/);
+    if (!m) return;
+    const s = tm(m[1]), e = tm(m[2]);
+    const text = m[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    const ws = text.split(' '), total = ws.reduce((a, w) => a + w.length + 1, 0);
+    let t = s; const words = ws.map(w => { const d = (e - s) * (w.length + 1) / total; const o = {w, s: t, e: t + d}; t += d; return o; });
+    list.push({s, e, text, words});
+  });
+  return finalize(list);
+}
 
-      // استخدام خادم AllOrigins الآمن لتجاوز حظر CORS وجلب الترجمة
-      const targetApi = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://youtube.com/watch?v=${videoId}`)}`;
+function finalize(list) {
+  list.sort((a, b) => a.s - b.s);
+  // إزالة التكرار المتتالي (شائع في الترجمة التلقائية) وضبط النهايات
+  const out = [];
+  list.forEach(c => { const p = out[out.length - 1]; if (p && p.text === c.text) p.e = Math.max(p.e, c.e); else out.push(c); });
+  out.forEach((c, i) => { if (out[i + 1]) c.e = Math.min(c.e, out[i + 1].s); c.ar = null; c.p = null; });
+  return out;
+}
 
-      try {
-        const response = await fetch(targetApi);
-        if (!response.ok) throw new Error();
-        const data = await response.json();
-        
-        // البحث عن مسار ملف الترجمة المباشر داخل صفحة الفيديو
-        const html = data.contents;
-        const captionTracksRegex = /"captionTracks":\s*(\[.*?\])/;
-        const match = html.match(captionTracksRegex);
+/* ---------- الترجمة ---------- */
+async function trans(text) {
+  const r = await fetchT('https://translate.googleapis.com/translate_a/single?client=gtx&sl=de&tl=ar&dt=t&q=' + encodeURIComponent(text), 10000);
+  const d = await r.json();
+  return d[0].map(x => x[0]).join('');
+}
+function ensureTr(i) {
+  const c = cues[i]; if (!c) return Promise.resolve('');
+  if (!c.p) c.p = trans(c.text).catch(() => '⚠️ تعذرت الترجمة').then(a => {
+    c.ar = a;
+    const el = document.querySelector(`.ln[data-i="${i}"] .a`); if (el) el.textContent = a;
+    if (i === cur) $('ar').textContent = a;
+    return a;
+  });
+  return c.p;
+}
+async function prefetch(myToken) {   // ترجمة مسبقة بالتوازي (4 طلبات)
+  let n = 0;
+  const worker = async () => { while (n < cues.length && myToken === token) { await ensureTr(n++); } };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  if (myToken === token) status('✨ اكتمل جلب السكريبت والترجمة', true);
+}
 
-        if (match && match[1]) {
-          const captionTracks = JSON.parse(match[1]);
-          // البحث عن المسار الألماني أولاً، وإن لم يوجد نأخذ أول مسار ترجمة متاح
-          let track = captionTracks.find(t => t.languageCode === 'de') || captionTracks[0];
+/* ---------- العرض ---------- */
+function mmss(t) { t = Math.floor(t); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+function buildList() {
+  $('list').innerHTML = cues.map((c, i) =>
+    `<div class="ln" data-i="${i}"><div class="t">${mmss(c.s)}</div><div class="d"></div><div class="a">${c.ar || ''}</div></div>`).join('');
+  [...$('list').children].forEach((el, i) => el.querySelector('.d').textContent = cues[i].text);
+}
+$('list').addEventListener('click', e => {
+  const l = e.target.closest('.ln'); if (!l || !player) return;
+  player.seekTo(cues[+l.dataset.i].s, true); player.playVideo();
+});
 
-          if (track && track.baseUrl) {
-            statusDiv.innerText = "✅ تم العثور على السكريبت! جاري الترجمة والتوقيت...";
-            await fetchXmlSubtitles(track.baseUrl);
-            return;
-          }
-        }
-      } catch (e) {
-        console.log("محاولة عبر الخادم الاحتياطي...");
-      }
+function showCue(i) {
+  cur = i;
+  const c = cues[i], de = $('de'); de.textContent = '';
+  wordEls = c.words.map(w => { const s = document.createElement('span'); s.className = 'w'; s.textContent = w.w; de.append(s, ' '); return s; });
+  activeW = -1;
+  $('ar').textContent = c.ar || 'جاري الترجمة...';
+  ensureTr(i); ensureTr(i + 1);
+  document.querySelectorAll('.ln.cur').forEach(x => x.classList.remove('cur'));
+  const l = document.querySelector(`.ln[data-i="${i}"]`);
+  if (l) { l.classList.add('cur'); if ($('list').style.display === 'block') l.scrollIntoView({block: 'nearest'}); }
+}
 
-      // محاولة احتياطية ثانية في حال فشل الأولى
-      try {
-        const resFallback = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=de`);
-        if (resFallback.ok) {
-          const dataFallback = await resFallback.json();
-          if (dataFallback && dataFallback.length > 0) {
-            statusDiv.innerText = "✅ تم جلب السكريبت بنجاح!";
-            await processRawSubtitles(dataFallback);
-            return;
-          }
-        }
-      } catch(err) {}
+function findCue(t) {   // بحث ثنائي عن آخر سطر بدأ
+  let lo = 0, hi = cues.length - 1, r = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (cues[m].s <= t) { r = m; lo = m + 1; } else hi = m - 1; }
+  return r;
+}
 
-      statusDiv.innerHTML = "⚠️ يتعذر جلب سكريبت هذا الفيديو برمجياً.<br>تأكد من تفعيل زر الترجمة (CC) من داخل مشغل يوتيوب المدمج بالأعلى.";
-    }
-
-    async function fetchXmlSubtitles(baseUrl) {
-      const statusDiv = document.getElementById('statusMsg');
-      try {
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(baseUrl + '&fmt=json3')}`;
-        const res = await fetch(proxyUrl);
-        const data = await res.json();
-        const json3 = JSON.parse(data.contents);
-
-        subtitlesData = [];
-        if (json3 && json3.events) {
-          for (let event of json3.events) {
-            if (!event.segs) continue;
-            
-            const start = event.tStartMs / 1000;
-            const duration = (event.dDurationMs || 2000) / 1000;
-            const fullText = event.segs.map(s => s.utf8).join('').replace(/\n/g, ' ').trim();
-            
-            if (!fullText) continue;
-
-            const wordsList = fullText.split(' ').filter(w => w.length > 0);
-            const wordDuration = duration / Math.max(wordsList.length, 1);
-            
-            let currentWordStart = start;
-            const timedWords = wordsList.map(w => {
-              const wObj = {
-                word: w,
-                start: currentWordStart,
-                end: currentWordStart + wordDuration
-              };
-              currentWordStart += wordDuration;
-              return wObj;
-            });
-
-            const arTranslation = await translateToArabic(fullText);
-
-            subtitlesData.push({
-              start: start,
-              end: start + duration,
-              text: fullText,
-              arText: arTranslation,
-              words: timedWords
-            });
-          }
-          statusDiv.innerText = "✨ اكتمل جلب السكريبت والترجمة بنجاح!";
-        }
-      } catch (e) {
-        statusDiv.innerText = "⚠️ فشل تحليل نص السكريبت.";
-      }
-    }
-
-    async function processRawSubtitles(data) {
-      subtitlesData = [];
-      for (let item of data) {
-        const start = item.start;
-        const duration = item.dur || 2;
-        const fullText = item.text.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-        
-        const wordsList = fullText.split(' ').filter(w => w.length > 0);
-        const wordDuration = duration / Math.max(wordsList.length, 1);
-        
-        let currentWordStart = start;
-        const timedWords = wordsList.map(w => {
-          const wObj = {
-            word: w,
-            start: currentWordStart,
-            end: currentWordStart + wordDuration
-          };
-          currentWordStart += wordDuration;
-          return wObj;
-        });
-
-        const arTranslation = await translateToArabic(fullText);
-
-        subtitlesData.push({
-          start: start,
-          end: start + duration,
-          text: fullText,
-          arText: arTranslation,
-          words: timedWords
-        });
-      }
-    }
-
-    async function translateToArabic(text) {
-      try {
-        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=de&tl=ar&dt=t&q=${encodeURIComponent(text)}`);
-        const data = await res.json();
-        return data[0][0][0];
-      } catch (e) {
-        return text;
-      }
-    }
-
-    async function startApp() {
-      const urlInput = document.getElementById('ytUrl').value;
-      if (!urlInput) return;
-      
-      const videoId = extractVideoId(urlInput);
-
-      await fetchSubtitles(videoId);
-
-      if (player) {
-        player.loadVideoById(videoId);
-      } else {
-        player = new YT.Player('player', {
-          videoId: videoId,
-          playerVars: {
-            'cc_load_policy': 1,
-            'cc_lang_pref': 'de'
-          },
-          events: {
-            'onStateChange': onPlayerStateChange
-          }
-        });
+function tick() {
+  if (player && player.getCurrentTime && cues.length) {
+    const t = player.getCurrentTime(), i = findCue(t);
+    if (i >= 0 && i !== cur) showCue(i);
+    if (cur >= 0) {
+      const ws = cues[cur].words; let a = -1;
+      for (let k = 0; k < ws.length; k++) if (t >= ws[k].s && t < ws[k].e) { a = k; break; }
+      if (a !== activeW) {
+        if (activeW >= 0) wordEls[activeW].classList.remove('on');
+        if (a >= 0) wordEls[a].classList.add('on');
+        activeW = a;
       }
     }
+  }
+  raf = requestAnimationFrame(tick);
+}
 
-    function onPlayerStateChange(event) {
-      if (event.data == YT.PlayerState.PLAYING) {
-        timer = setInterval(syncSubtitles, 100);
-      } else {
-        clearInterval(timer);
-      }
-    }
+function onState(e) {
+  cancelAnimationFrame(raf);
+  if (e.data === YT.PlayerState.PLAYING) raf = requestAnimationFrame(tick);
+  else if (e.data === YT.PlayerState.PAUSED) tick(), cancelAnimationFrame(raf);
+}
 
-    function syncSubtitles() {
-      if (!player || !player.getCurrentTime || subtitlesData.length === 0) return;
-      
-      const time = player.getCurrentTime();
-      const current = subtitlesData.find(s => time >= s.start && time <= s.end);
+/* ---------- التشغيل ---------- */
+function loadCues(list, msg) {
+  cues = list; cur = -1; token++;
+  buildList(); $('de').textContent = '...'; $('ar').textContent = '...';
+  status(msg, true);
+  prefetch(token);
+}
 
-      const deDiv = document.getElementById('deText');
-      const arDiv = document.getElementById('arText');
+async function startApp() {
+  const id = extractId($('url').value);
+  if (!id) return status('⚠️ الرابط غير صالح. تأكد من نسخ رابط فيديو يوتيوب كاملاً.');
+  $('go').disabled = true; cues = []; cur = -1; token++;
+  $('list').innerHTML = '';
+  status('🔍 جاري جلب السكريبت الألماني...');
 
-      if (current) {
-        arDiv.innerText = current.arText || 'جاري الترجمة...';
-        deDiv.innerHTML = current.words.map(w => {
-          const active = time >= w.start && time <= w.end;
-          return `<span class="word ${active ? 'active' : ''}">${w.word}</span>`;
-        }).join(' ');
-      }
-    }
-  </script>
+  await apiP;
+  if (player) player.loadVideoById(id);
+  else player = new YT.Player('player', {videoId: id, playerVars: {playsinline: 1, cc_load_policy: 0, rel: 0, hl: 'de'}, events: {onStateChange: onState}});
+
+  try {
+    const list = await fetchCues(id);
+    if (!list.length) throw new Error('empty');
+    loadCues(list, `✅ تم جلب ${list.length} سطراً. جاري الترجمة...`);
+  } catch (e) {
+    status('⚠️ تعذّر جلب سكريبت هذا الفيديو تلقائياً (قد لا يحتوي ترجمة، أو أن الخدمة الوسيطة محظورة).<br>استخدم «إدخال السكريبت يدوياً» لرفع ملف SRT/VTT.');
+    $('manual').style.display = 'block';
+  } finally { $('go').disabled = false; }
+}
+
+function useText(txt) {
+  const list = parseSub(txt);
+  if (!list.length) return status('⚠️ لم يتم التعرف على صيغة النص. استخدم SRT أو VTT مع الأوقات.');
+  loadCues(list, `✅ تم تحميل ${list.length} سطراً. جاري الترجمة...`);
+}
+
+$('go').onclick = startApp;
+$('url').addEventListener('keydown', e => { if (e.key === 'Enter') startApp(); });
+$('tList').onclick = () => { const l = $('list'); l.style.display = l.style.display === 'block' ? 'none' : 'block'; };
+$('tManual').onclick = () => { const m = $('manual'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
+$('useRaw').onclick = () => useText($('raw').value);
+$('file').onchange = e => { const f = e.target.files[0]; if (f) f.text().then(useText); };
+</script>
 </body>
 </html>
