@@ -4,83 +4,156 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>مترجم اليوتيوب التفاعلي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --hl:#ffd60a; --de:20px; --ar:17px;
-  --bg:#000; --card:#1c1c1e; --line:#2c2c2e; --mut:#8e8e93; --blue:#0a84ff; --green:#30d158;
+  --hl:#f2c14e; --de:22px; --ar:18px;
+  --bg:#0e1420; --surface:#161e2e; --surface2:#1d2739; --line:#26324a;
+  --text:#eef1f7; --mut:#8793ab; --ink:#0e1420; --accent:#e5484d; --ok:#6fd3a0;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"Tajawal",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
-*{box-sizing:border-box}
-body{margin:0;padding:14px;padding-bottom:40px;background:var(--bg);color:#fff;text-align:center;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
-h1{font-size:18px;margin:4px 0 12px;color:#f5f5f7}
-.row{display:flex;gap:8px;margin-bottom:10px}
-input[type=text]{flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid #333;background:var(--card);color:#fff;font-size:16px;direction:ltr}
-button{padding:10px 14px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
-button.sec{background:#2c2c2e;font-weight:500}
-button:disabled{opacity:.5}
-.bar{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px;
-  display:flex;flex-wrap:wrap;gap:12px;justify-content:space-around;align-items:center;font-size:13px}
-.bar label{color:var(--mut);margin-inline-start:6px}
-.bar input[type=color]{width:28px;height:28px;border:0;border-radius:50%;background:none;padding:0;vertical-align:middle}
-.bar input[type=range]{width:90px;vertical-align:middle}
-.bar b{display:inline-block;min-width:28px;color:#fff;font-weight:500}
-#status{font-size:13px;color:#ff9f0a;margin-bottom:10px;line-height:1.5;min-height:20px}
-#status.ok{color:var(--green)}
-#pc{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#111;margin-bottom:12px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-text-size-adjust:100%;
+  padding:0 14px calc(40px + env(safe-area-inset-bottom));padding-top:env(safe-area-inset-top)}
+.wrap{max-width:720px;margin:0 auto}
+
+/* الشريط العلوي: ألوان العلم الألماني كهوية خفيفة */
+.flag{height:4px;margin:0 -14px;background:linear-gradient(90deg,#111 0 33.3%,var(--accent) 33.3% 66.6%,var(--hl) 66.6%)}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 2px 14px}
+header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px}
+header small{display:block;color:var(--mut);font-size:12px;font-weight:400;margin-top:2px}
+.badge{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink);background:var(--hl);
+  border-radius:9px;padding:5px 10px;direction:ltr}
+
+/* الإهداء */
+.dedic{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 14px;padding:12px 14px;
+  border:1px solid rgba(242,193,78,.45);border-radius:16px;
+  background:linear-gradient(135deg,rgba(229,72,77,.16),rgba(242,193,78,.14));
+  font-family:"Aref Ruqaa","Tajawal",serif;font-size:26px;font-weight:700;line-height:1.6;color:#f2c14e;text-align:center}
+.dedic i{font-style:normal;font-size:20px;color:#e5484d}
+
+/* إدخال الرابط */
+.search{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:5px;margin-bottom:10px}
+.search:focus-within{border-color:var(--hl)}
+input[type=text]{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);font-size:16px;padding:10px 12px;direction:ltr;font-family:var(--sans)}
+input[type=text]::placeholder{color:var(--mut);direction:rtl}
+button{font-family:var(--sans);cursor:pointer;border:0;color:var(--text)}
+#go{background:var(--hl);color:var(--ink);font-weight:700;font-size:14px;border-radius:10px;padding:0 18px}
+#go:disabled{opacity:.5}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+
+/* الحالة */
+#status{display:flex;align-items:center;gap:8px;min-height:22px;margin:2px 2px 12px;font-size:13px;line-height:1.6;color:var(--mut)}
+#status::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--mut)}
+#status.ok{color:var(--ok)}
+#status.ok::before{background:var(--ok)}
+
+/* المشغل */
+#pc{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:16px;background:#05080e;margin-bottom:12px;border:1px solid var(--line)}
 #pc iframe,#pc #player{position:absolute;inset:0;width:100%;height:100%;border:0}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:96px;
-  display:flex;flex-direction:column;justify-content:center;gap:10px}
-#de{font-size:var(--de);direction:ltr;line-height:1.5;color:#e5e5ea}
-#ar{font-size:var(--ar);color:var(--green);font-weight:500;line-height:1.5}
-.w{display:inline-block;padding:0 3px;margin:0 1px;border-radius:5px;transition:background .08s,color .08s}
-.w.on{color:#000;background:var(--hl);font-weight:700}
-.tools{display:flex;gap:8px;justify-content:center;margin:12px 0}
-#manual{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;text-align:right;font-size:13px;color:var(--mut);line-height:1.6}
-#manual textarea{width:100%;height:110px;margin:8px 0;background:#000;color:#fff;border:1px solid #333;border-radius:8px;padding:8px;direction:ltr;font-size:13px}
-#list{display:none;max-height:340px;overflow-y:auto;text-align:start;background:var(--card);border:1px solid var(--line);border-radius:12px}
-.ln{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+
+/* بطاقة السطر الحالي */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+#de{font-family:var(--serif);font-size:var(--de);line-height:1.6;font-weight:400;direction:ltr;text-align:left;
+  padding:20px 18px 16px;min-height:96px;color:#dfe5f1}
+.w{display:inline-block;padding:0 4px;margin:0 1px;border-radius:6px;transition:background .08s,color .08s}
+.w.on{background:var(--hl);color:var(--ink);font-weight:600}
+#ar{font-size:var(--ar);line-height:1.8;font-weight:500;color:var(--ok);background:var(--surface2);
+  padding:14px 18px;border-top:1px solid var(--line);min-height:56px}
+
+/* التخصيص */
+details{margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+summary{list-style:none;cursor:pointer;padding:13px 16px;font-size:14px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:20px;color:var(--mut);line-height:1}
+details[open] summary::after{content:"−"}
+.set{padding:4px 16px 14px;display:grid;gap:14px}
+.set div{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+.set label{color:var(--mut)}
+.set input[type=range]{width:55%;accent-color:var(--hl)}
+.set input[type=color]{width:34px;height:34px;border:2px solid var(--line);border-radius:50%;background:none;padding:0}
+.set b{min-width:30px;text-align:center;font-weight:500}
+.hint{font-size:12px;color:var(--mut);line-height:1.6;margin:-6px 0 0}
+
+/* الأزرار الثانوية */
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;font-weight:500}
+.sec:active{background:var(--surface2)}
+
+/* السكريبت الكامل */
+#list{display:none;max-height:46vh;overflow-y:auto;text-align:start;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.ln{padding:11px 16px;border-bottom:1px solid var(--line);cursor:pointer}
 .ln:last-child{border:0}
-.ln.cur{background:#26262a;box-shadow:inset 3px 0 0 var(--hl)}
-.ln .d{direction:ltr;text-align:left;font-size:15px;color:#e5e5ea}
-.ln .a{font-size:14px;color:var(--green);margin-top:3px;min-height:1em}
+.ln.cur{background:var(--surface2);box-shadow:inset 3px 0 0 var(--hl)}
 .ln .t{font-size:11px;color:var(--mut);direction:ltr;text-align:left}
+.ln .d{font-family:var(--serif);direction:ltr;text-align:left;font-size:17px;line-height:1.5;color:#dfe5f1}
+.ln .a{font-size:14px;color:var(--ok);margin-top:3px;min-height:1em;line-height:1.7}
+
+/* الإدخال اليدوي */
+#manual{display:none;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px;font-size:13px;color:var(--mut);line-height:1.7}
+#manual textarea{width:100%;height:110px;margin:10px 0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;direction:ltr;font-size:13px}
+#manual .row{display:flex;gap:8px}
+#manual .row button{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:500;background:var(--surface2);border:1px solid var(--line)}
+#manual .row #useRaw{background:var(--hl);color:var(--ink);border:0;font-weight:700}
+@media (prefers-reduced-motion:reduce){.w{transition:none}}
 </style>
 </head>
 <body>
-<h1>مترجم اليوتيوب التفاعلي</h1>
+<div class="flag"></div>
+<div class="wrap">
 
-<div class="row">
-  <input type="text" id="url" placeholder="ضع رابط الفيديو هنا..." autocomplete="off" autocapitalize="off" spellcheck="false">
-  <button id="go">بدء المعالجة</button>
+<header>
+  <h1>مترجم اليوتيوب التفاعلي<small>تعلّم الألمانية من الفيديوهات، كلمة بكلمة</small></h1>
+  <span class="badge">DE</span>
+</header>
+
+<div class="dedic"><i>♥</i><span>إلى زوجتي الحبيبة</span><i>♥</i></div>
+
+<div class="search">
+  <input type="text" id="url" placeholder="الصق رابط الفيديو هنا" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <button id="go">ابدأ</button>
 </div>
 
-<div class="bar">
-  <span><label for="hlc">لون التظليل:</label><input type="color" id="hlc" value="#ffd60a"></span>
-  <span><label for="des">خط ألماني:</label><input type="range" id="des" min="16" max="34" value="20"></span>
-  <span><label for="ars">خط عربي:</label><input type="range" id="ars" min="14" max="30" value="17"></span>
-  <span><label for="syn">مزامنة:</label><input type="range" id="syn" min="-2" max="3" step="0.1" value="1"><b id="synv">1.0</b></span>
-</div>
-
-<div id="status">أدخل الرابط واضغط بدء المعالجة</div>
+<div id="status">الصق الرابط واضغط ابدأ</div>
 <div id="pc"><div id="player"></div></div>
 
-<div class="card"><div id="de">السطر الألماني يظهر هنا...</div><div id="ar">الترجمة العربية...</div></div>
+<div class="card">
+  <div id="de">Hier erscheint der deutsche Satz …</div>
+  <div id="ar">الترجمة العربية تظهر هنا</div>
+</div>
+
+<details>
+  <summary>تخصيص المظهر والمزامنة</summary>
+  <div class="set">
+    <div><label for="hlc">لون التظليل</label><input type="color" id="hlc" value="#f2c14e"></div>
+    <div><label for="des">حجم الخط الألماني</label><input type="range" id="des" min="16" max="34" value="22"></div>
+    <div><label for="ars">حجم الخط العربي</label><input type="range" id="ars" min="14" max="30" value="18"></div>
+    <div><label for="syn">مزامنة التظليل</label><input type="range" id="syn" min="-2" max="3" step="0.1" value="1"><b id="synv">1.0</b></div>
+    <p class="hint">إذا تأخر التظليل عن الصوت فارفع قيمة المزامنة، وإذا سبقه فاخفضها.</p>
+  </div>
+</details>
 
 <div class="tools">
-  <button class="sec" id="tList">عرض السكريبت كاملاً</button>
-  <button class="sec" id="tManual">إدخال السكريبت يدوياً</button>
+  <button class="sec" id="tList">السكريبت الكامل</button>
+  <button class="sec" id="tManual">إدخال يدوي</button>
 </div>
 
 <div id="list"></div>
 
 <div id="manual">
-  إذا تعذّر الجلب التلقائي: الصق نص الترجمة بصيغة SRT / VTT هنا، أو اختر ملفاً (.srt / .vtt).
+  إذا تعذّر الجلب التلقائي: الصق نص الترجمة بصيغة SRT / VTT، أو ارفع ملفاً.
   <textarea id="raw" placeholder="00:00:01,000 --> 00:00:03,500&#10;Hallo und willkommen"></textarea>
-  <div class="row" style="margin:0">
+  <div class="row">
     <button id="useRaw">استخدام النص</button>
-    <button class="sec" onclick="document.getElementById('file').click()">رفع ملف</button>
+    <button onclick="document.getElementById('file').click()">رفع ملف</button>
     <input type="file" id="file" accept=".srt,.vtt,.txt" hidden>
   </div>
+</div>
+
 </div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -216,7 +289,7 @@ async function prefetch(myToken) {
   let n = 0;
   const worker = async () => { while (n < cues.length && myToken === token) { await ensureTr(n++); } };
   await Promise.all([worker(), worker(), worker(), worker()]);
-  if (myToken === token) status('✨ اكتمل جلب السكريبت والترجمة', true);
+  if (myToken === token) status('اكتمل جلب السكريبت والترجمة', true);
 }
 
 /* ---------- العرض ---------- */
@@ -285,7 +358,7 @@ async function startApp() {
   if (!id) return status('⚠️ الرابط غير صالح. تأكد من نسخ رابط فيديو يوتيوب كاملاً.');
   $('go').disabled = true; cues = []; cur = -1; token++;
   $('list').innerHTML = '';
-  status('🔍 جاري جلب السكريبت الألماني...');
+  status('جاري جلب السكريبت الألماني...');
 
   await apiP;
   if (player) player.loadVideoById(id);
@@ -294,17 +367,17 @@ async function startApp() {
   try {
     const list = await fetchCues(id);
     if (!list.length) throw new Error('empty');
-    loadCues(list, `✅ تم جلب ${list.length} سطراً. جاري الترجمة...`);
+    loadCues(list, `تم جلب ${list.length} سطراً. جاري الترجمة...`);
   } catch (e) {
-    status(`⚠️ تعذّر جلب السكريبت (${e.message}).<br>يمكنك استخدام «إدخال السكريبت يدوياً».`);
+    status(`⚠️ تعذّر جلب السكريبت (${e.message}). جرّب «إدخال يدوي».`);
     $('manual').style.display = 'block';
   } finally { $('go').disabled = false; }
 }
 
 function useText(txt) {
   const list = parseSub(txt);
-  if (!list.length) return status('⚠️ لم يتم التعرف على صيغة النص. استخدم SRT أو VTT مع الأوقات.');
-  loadCues(list, `✅ تم تحميل ${list.length} سطراً. جاري الترجمة...`);
+  if (!list.length) return status('⚠️ لم يتم التعرف على الصيغة. استخدم SRT أو VTT مع الأوقات.');
+  loadCues(list, `تم تحميل ${list.length} سطراً. جاري الترجمة...`);
 }
 
 $('go').onclick = startApp;
