@@ -83,6 +83,8 @@ button:disabled{opacity:.5}
 
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
+const WORKER = 'https://withered-bird-6773.hasimbaha00.workers.dev';
+
 const $ = id => document.getElementById(id);
 let player, apiReady, cues = [], cur = -1, raf = 0, wordEls = [], activeW = -1, token = 0;
 const apiP = new Promise(r => apiReady = r);
@@ -105,27 +107,9 @@ applySettings(false);
 
 function status(msg, ok) { const s = $('status'); s.innerHTML = msg; s.className = ok ? 'ok' : ''; }
 
-/* ---------- أدوات الشبكة ---------- */
-const PROXIES = [
-  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)
-];
 async function fetchT(url, ms = 12000) {
   const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
   try { return await fetch(url, {signal: c.signal}); } finally { clearTimeout(t); }
-}
-// يجرّب عدة وسطاء حتى ينجح أحدهم ويحقق شرط الصحة
-async function viaProxy(url, valid) {
-  for (const p of PROXIES) {
-    try {
-      const r = await fetchT(p(url));
-      if (!r.ok) continue;
-      const t = await r.text();
-      if (valid(t)) return t;
-    } catch (e) {}
-  }
-  throw new Error('proxy');
 }
 
 /* ---------- استخراج الرابط ---------- */
@@ -136,28 +120,15 @@ function extractId(u) {
   return /^[\w-]{11}$/.test(u) ? u : '';
 }
 
-/* ---------- جلب السكريبت ---------- */
-function grabArray(html, key) {
-  const i = html.indexOf(key); if (i < 0) return null;
-  let s = html.indexOf('[', i), d = 0, str = false;
-  for (let k = s; k < html.length; k++) {
-    const ch = html[k];
-    if (str) { if (ch === '\\') k++; else if (ch === '"') str = false; continue; }
-    if (ch === '"') str = true;
-    else if (ch === '[') d++;
-    else if (ch === ']' && --d === 0) return JSON.parse(html.slice(s, k + 1));
-  }
-  return null;
-}
-
+/* ---------- جلب السكريبت عبر الوسيط ---------- */
 async function fetchCues(id) {
-  const page = await viaProxy(`https://www.youtube.com/watch?v=${id}&hl=de`, t => t.includes('captionTracks'));
-  const tracks = grabArray(page, '"captionTracks"');
-  if (!tracks || !tracks.length) throw new Error('notracks');
-  const de = tracks.filter(t => t.languageCode && t.languageCode.startsWith('de'));
-  const track = de.find(t => t.kind !== 'asr') || de[0] || tracks[0];
-  const raw = await viaProxy(track.baseUrl.replace(/&fmt=[^&]*/, '') + '&fmt=json3', t => t.trim().startsWith('{'));
-  return parseJson3(JSON.parse(raw));
+  const r = await fetchT(`${WORKER}/?v=${id}`, 20000);
+  if (!r.ok) {
+    let msg = 'HTTP ' + r.status;
+    try { msg = (await r.json()).error || msg; } catch (e) {}
+    throw new Error(msg);
+  }
+  return parseJson3(await r.json());
 }
 
 function wordsFromEvent(ev, start, end) {
@@ -207,7 +178,6 @@ function parseSub(txt) {
 
 function finalize(list) {
   list.sort((a, b) => a.s - b.s);
-  // إزالة التكرار المتتالي (شائع في الترجمة التلقائية) وضبط النهايات
   const out = [];
   list.forEach(c => { const p = out[out.length - 1]; if (p && p.text === c.text) p.e = Math.max(p.e, c.e); else out.push(c); });
   out.forEach((c, i) => { if (out[i + 1]) c.e = Math.min(c.e, out[i + 1].s); c.ar = null; c.p = null; });
@@ -230,7 +200,7 @@ function ensureTr(i) {
   });
   return c.p;
 }
-async function prefetch(myToken) {   // ترجمة مسبقة بالتوازي (4 طلبات)
+async function prefetch(myToken) {
   let n = 0;
   const worker = async () => { while (n < cues.length && myToken === token) { await ensureTr(n++); } };
   await Promise.all([worker(), worker(), worker(), worker()]);
@@ -261,7 +231,7 @@ function showCue(i) {
   if (l) { l.classList.add('cur'); if ($('list').style.display === 'block') l.scrollIntoView({block: 'nearest'}); }
 }
 
-function findCue(t) {   // بحث ثنائي عن آخر سطر بدأ
+function findCue(t) {
   let lo = 0, hi = cues.length - 1, r = -1;
   while (lo <= hi) { const m = (lo + hi) >> 1; if (cues[m].s <= t) { r = m; lo = m + 1; } else hi = m - 1; }
   return r;
@@ -314,7 +284,7 @@ async function startApp() {
     if (!list.length) throw new Error('empty');
     loadCues(list, `✅ تم جلب ${list.length} سطراً. جاري الترجمة...`);
   } catch (e) {
-    status('⚠️ تعذّر جلب سكريبت هذا الفيديو تلقائياً (قد لا يحتوي ترجمة، أو أن الخدمة الوسيطة محظورة).<br>استخدم «إدخال السكريبت يدوياً» لرفع ملف SRT/VTT.');
+    status(`⚠️ تعذّر جلب السكريبت (${e.message}).<br>يمكنك استخدام «إدخال السكريبت يدوياً».`);
     $('manual').style.display = 'block';
   } finally { $('go').disabled = false; }
 }
