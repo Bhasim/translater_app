@@ -23,6 +23,7 @@ button:disabled{opacity:.5}
 .bar label{color:var(--mut);margin-inline-start:6px}
 .bar input[type=color]{width:28px;height:28px;border:0;border-radius:50%;background:none;padding:0;vertical-align:middle}
 .bar input[type=range]{width:90px;vertical-align:middle}
+.bar b{display:inline-block;min-width:28px;color:#fff;font-weight:500}
 #status{font-size:13px;color:#ff9f0a;margin-bottom:10px;line-height:1.5;min-height:20px}
 #status.ok{color:var(--green)}
 #pc{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#111;margin-bottom:12px}
@@ -57,6 +58,7 @@ button:disabled{opacity:.5}
   <span><label for="hlc">لون التظليل:</label><input type="color" id="hlc" value="#ffd60a"></span>
   <span><label for="des">خط ألماني:</label><input type="range" id="des" min="16" max="34" value="20"></span>
   <span><label for="ars">خط عربي:</label><input type="range" id="ars" min="14" max="30" value="17"></span>
+  <span><label for="syn">مزامنة:</label><input type="range" id="syn" min="-2" max="3" step="0.1" value="1"><b id="synv">1.0</b></span>
 </div>
 
 <div id="status">أدخل الرابط واضغط بدء المعالجة</div>
@@ -104,6 +106,16 @@ try {
 } catch (e) {}
 ['hlc','des','ars'].forEach(i => $(i).addEventListener('input', () => applySettings()));
 applySettings(false);
+
+/* ---------- مزامنة التظليل مع الصوت ---------- */
+let SYNC = 1;
+try { const v = localStorage.getItem('yt-de-sync'); if (v !== null && !isNaN(parseFloat(v))) SYNC = parseFloat(v); } catch (e) {}
+$('syn').value = SYNC; $('synv').textContent = SYNC.toFixed(1);
+$('syn').addEventListener('input', () => {
+  SYNC = parseFloat($('syn').value);
+  $('synv').textContent = SYNC.toFixed(1);
+  try { localStorage.setItem('yt-de-sync', SYNC); } catch (e) {}
+});
 
 function status(msg, ok) { const s = $('status'); s.innerHTML = msg; s.className = ok ? 'ok' : ''; }
 
@@ -216,7 +228,7 @@ function buildList() {
 }
 $('list').addEventListener('click', e => {
   const l = e.target.closest('.ln'); if (!l || !player) return;
-  player.seekTo(cues[+l.dataset.i].s, true); player.playVideo();
+  player.seekTo(Math.max(0, cues[+l.dataset.i].s - SYNC), true); player.playVideo();
 });
 
 function showCue(i) {
@@ -239,7 +251,7 @@ function findCue(t) {
 
 function tick() {
   if (player && player.getCurrentTime && cues.length) {
-    const t = player.getCurrentTime(), i = findCue(t);
+    const t = player.getCurrentTime() + SYNC, i = findCue(t);
     if (i >= 0 && i !== cur) showCue(i);
     if (cur >= 0) {
       const ws = cues[cur].words; let a = -1;
