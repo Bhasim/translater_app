@@ -194,7 +194,7 @@
       document.documentElement.style.setProperty('--ar-font-size', arSize);
     }
 
-    // دالة محسنة ومضمونة لاستخراج معرف الفيديو الدقيق وتنظيف الروابط
+    // استخراج ID الفيديو بدقة مع تنظيف أي رموز مشاركة إضافية
     function extractVideoId(url) {
       if (!url) return '';
       let cleanUrl = url.trim();
@@ -205,49 +205,105 @@
 
     async function fetchSubtitles(videoId) {
       const statusDiv = document.getElementById('statusMsg');
-      statusDiv.innerText = "🔍 جاري تحليل الرابط والبحث عن السكريبت الألماني...";
+      statusDiv.innerText = "🔍 جاري الاتصال بخادم الاستخراج لتجهيز السكريبت...";
       subtitlesData = [];
 
-      // محاولات متعددة لجلب اللغات المتنوعة (de, de-DE, de-AT)
-      const langCodes = ['de', 'de-DE', 'de-AT', 'en'];
+      // استخدام خادم AllOrigins الآمن لتجاوز حظر CORS وجلب الترجمة
+      const targetApi = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://youtube.com/watch?v=${videoId}`)}`;
 
-      for (let lang of langCodes) {
-        try {
-          const res = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=${lang}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.length > 0) {
-              statusDiv.innerText = `✅ تم الجلب بنجاح! جاري معالجة السكريبت...`;
-              await processRawSubtitles(data);
-              return;
-            }
-          }
-        } catch (e) {
-          console.log(`فشلت محاولة الجلب للغة: ${lang}`);
-        }
-      }
-
-      // محاولة احتياطية من سيرفر مساند
       try {
-        const fallbackRes = await fetch(`https://srv.deutsch-podcast.de/subtitles?id=${videoId}`);
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json();
-          if (fallbackData && fallbackData.subtitles && fallbackData.subtitles.length > 0) {
-            statusDiv.innerText = "✅ تم استخراج النص عبر الخادم المساند!";
-            subtitlesData = fallbackData.subtitles;
+        const response = await fetch(targetApi);
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        
+        // البحث عن مسار ملف الترجمة المباشر داخل صفحة الفيديو
+        const html = data.contents;
+        const captionTracksRegex = /"captionTracks":\s*(\[.*?\])/;
+        const match = html.match(captionTracksRegex);
+
+        if (match && match[1]) {
+          const captionTracks = JSON.parse(match[1]);
+          // البحث عن المسار الألماني أولاً، وإن لم يوجد نأخذ أول مسار ترجمة متاح
+          let track = captionTracks.find(t => t.languageCode === 'de') || captionTracks[0];
+
+          if (track && track.baseUrl) {
+            statusDiv.innerText = "✅ تم العثور على السكريبت! جاري الترجمة والتوقيت...";
+            await fetchXmlSubtitles(track.baseUrl);
             return;
           }
         }
       } catch (e) {
-        console.log("تعذر الوصول للخادم المساند.");
+        console.log("محاولة عبر الخادم الاحتياطي...");
       }
 
-      statusDiv.innerHTML = "⚠️ تعذر جلب السكريبت أوتوماتيكياً.<br>يرجى التأكد من أن الترجمة مفعّلة داخل مشغل يوتيوب بالأسفل.";
+      // محاولة احتياطية ثانية في حال فشل الأولى
+      try {
+        const resFallback = await fetch(`https://yt-subtitles-api.vercel.app/api/subtitles?videoId=${videoId}&lang=de`);
+        if (resFallback.ok) {
+          const dataFallback = await resFallback.json();
+          if (dataFallback && dataFallback.length > 0) {
+            statusDiv.innerText = "✅ تم جلب السكريبت بنجاح!";
+            await processRawSubtitles(dataFallback);
+            return;
+          }
+        }
+      } catch(err) {}
+
+      statusDiv.innerHTML = "⚠️ يتعذر جلب سكريبت هذا الفيديو برمجياً.<br>تأكد من تفعيل زر الترجمة (CC) من داخل مشغل يوتيوب المدمج بالأعلى.";
+    }
+
+    async function fetchXmlSubtitles(baseUrl) {
+      const statusDiv = document.getElementById('statusMsg');
+      try {
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(baseUrl + '&fmt=json3')}`;
+        const res = await fetch(proxyUrl);
+        const data = await res.json();
+        const json3 = JSON.parse(data.contents);
+
+        subtitlesData = [];
+        if (json3 && json3.events) {
+          for (let event of json3.events) {
+            if (!event.segs) continue;
+            
+            const start = event.tStartMs / 1000;
+            const duration = (event.dDurationMs || 2000) / 1000;
+            const fullText = event.segs.map(s => s.utf8).join('').replace(/\n/g, ' ').trim();
+            
+            if (!fullText) continue;
+
+            const wordsList = fullText.split(' ').filter(w => w.length > 0);
+            const wordDuration = duration / Math.max(wordsList.length, 1);
+            
+            let currentWordStart = start;
+            const timedWords = wordsList.map(w => {
+              const wObj = {
+                word: w,
+                start: currentWordStart,
+                end: currentWordStart + wordDuration
+              };
+              currentWordStart += wordDuration;
+              return wObj;
+            });
+
+            const arTranslation = await translateToArabic(fullText);
+
+            subtitlesData.push({
+              start: start,
+              end: start + duration,
+              text: fullText,
+              arText: arTranslation,
+              words: timedWords
+            });
+          }
+          statusDiv.innerText = "✨ اكتمل جلب السكريبت والترجمة بنجاح!";
+        }
+      } catch (e) {
+        statusDiv.innerText = "⚠️ فشل تحليل نص السكريبت.";
+      }
     }
 
     async function processRawSubtitles(data) {
       subtitlesData = [];
-      
       for (let item of data) {
         const start = item.start;
         const duration = item.dur || 2;
