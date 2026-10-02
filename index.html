@@ -178,8 +178,8 @@ details[open] summary::after{content:"−"}
         <div><label for="hlc">لون التظليل</label><input type="color" id="hlc" value="#f2c14e"></div>
         <div><label for="des">حجم الخط الألماني</label><input type="range" id="des" min="16" max="44" value="22"></div>
         <div><label for="ars">حجم الخط العربي</label><input type="range" id="ars" min="14" max="36" value="18"></div>
-        <div><label for="syn">مزامنة التظليل</label><input type="range" id="syn" min="-2" max="3" step="0.1" value="1"><b id="synv">1.0</b></div>
-        <p class="hint">إذا تأخر التظليل عن الصوت فارفع قيمة المزامنة، وإذا سبقه فاخفضها.</p>
+        <div><label for="syn">مزامنة التظليل</label><input type="range" id="syn" min="-2" max="2" step="0.1" value="0"><b id="synv">0.0</b></div>
+        <p class="hint">القيمة 0.0 هي نقطة الاتزان المثالية (0.6 ثانية). إذا تأخر التظليل فارفع القيمة، وإذا سبق الصوت فاخفضها.</p>
       </div>
     </details>
 
@@ -233,12 +233,21 @@ try {
 ['hlc','des','ars'].forEach(i => $(i).addEventListener('input', () => applySettings()));
 applySettings(false);
 
-/* ---------- مزامنة التظليل مع الصوت ---------- */
-let SYNC = 1;
-try { const v = localStorage.getItem('yt-de-sync'); if (v !== null && !isNaN(parseFloat(v))) SYNC = parseFloat(v); } catch (e) {}
-$('syn').value = SYNC; $('synv').textContent = SYNC.toFixed(1);$('syn').addEventListener('input', () => {
-  SYNC = parseFloat($('syn').value);$('synv').textContent = SYNC.toFixed(1);
-  try { localStorage.setItem('yt-de-sync', SYNC); } catch (e) {}
+/* ---------- مزامنة التظليل مع الصوت (0.6 هي نقطة الاتزان الأساسية 0.0) ---------- */
+const BASE_OFFSET = 0.6; // نقطة الاتزان المثالية
+let USER_SYNC = 0.0; // القيمة المعروضة للمستخدم
+
+try { 
+  const v = localStorage.getItem('yt-de-sync'); 
+  if (v !== null && !isNaN(parseFloat(v))) USER_SYNC = parseFloat(v); 
+} catch (e) {}
+
+$('syn').value = USER_SYNC; 
+$('synv').textContent = USER_SYNC.toFixed(1);
+
+$('syn').addEventListener('input', () => {
+  USER_SYNC = parseFloat($('syn').value);$('synv').textContent = USER_SYNC.toFixed(1);
+  try { localStorage.setItem('yt-de-sync', USER_SYNC); } catch (e) {}
 });
 
 function status(msg, ok) { const s = $('status'); s.innerHTML = msg; s.className = ok ? 'ok' : ''; }
@@ -393,7 +402,7 @@ function ensureTr(i, tries = 0) {
     c.p = trans(c.text).then(a => { c.ar = a; paintTr(i, a); return a; })
       .catch(() => {
         c.p = null;
-        if (i === cur && !c.ar) $('ar').textContent = '⚠️ تعذرت الترجمة، جاري إعادة المحاولة...';
+        if (i === cur && !c.ar) $('ar').textContent = '⚠️️ تعذرت الترجمة، جاري إعادة المحاولة...';
         if (tries < 3) setTimeout(() => { if (!c.ar) ensureTr(i, tries + 1); }, 2500 * (tries + 1));
         return '';
       });
@@ -420,7 +429,8 @@ function buildList() {
 }
 $('list').addEventListener('click', e => {
   const l = e.target.closest('.ln'); if (!l || !player) return;
-  player.seekTo(Math.max(0, cues[+l.dataset.i].s - SYNC), true); player.playVideo();
+  const effectiveSync = BASE_OFFSET + USER_SYNC;
+  player.seekTo(Math.max(0, cues[+l.dataset.i].s - effectiveSync), true); player.playVideo();
 });
 
 function showCue(i) {
@@ -444,7 +454,8 @@ function findCue(t) {
 
 function tick() {
   if (player && player.getCurrentTime && cues.length) {
-    const t = player.getCurrentTime() + SYNC, i = findCue(t);
+    const effectiveSync = BASE_OFFSET + USER_SYNC;
+    const t = player.getCurrentTime() + effectiveSync, i = findCue(t);
     if (i >= 0 && i !== cur) showCue(i);
     
     if (cur >= 0) {
