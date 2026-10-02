@@ -121,7 +121,7 @@ details[open] summary::after{content:"−"}
   .ln .a{font-size:16px}
 }
 
-/* الوضع الأفقي (آيفون وآيباد): الفيديو يمين/يسار والنص بجانبه */
+/* الوضع الأفقي (آيفون وآيباد): الفيديو بجانب النص */
 @media (orientation:landscape) and (min-width:700px){
   .top{padding:8px 0 8px}
   header{flex:0 0 auto}
@@ -214,7 +214,6 @@ const apiP = new Promise(r => apiReady = r);
 window.onYouTubeIframeAPIReady = () => apiReady();
 
 /* ---------- الإعدادات (تُحفظ في الجهاز) ---------- */
-// أحجام افتراضية أكبر للآيباد
 const BIG = Math.min(screen.width, screen.height) >= 700;
 if (BIG) { $('des').value = 30; $('ars').value = 24; }
 
@@ -313,7 +312,7 @@ function parseSub(txt) {
   return finalize(list);
 }
 
-// دمج المقاطع القصيرة في جمل كاملة (سطران أو أكثر) لقراءة أوضح وترجمة أدق
+// دمج المقاطع القصيرة في جمل كاملة (سطران أو أكثر)
 function mergeSentences(list) {
   const out = []; let g = null;
   const flush = () => { if (g) { out.push(g); g = null; } };
@@ -336,27 +335,81 @@ function finalize(list) {
   return out;
 }
 
-/* ---------- الترجمة ---------- */
-async function trans(text) {
-  const r = await fetchT('https://translate.googleapis.com/translate_a/single?client=gtx&sl=de&tl=ar&dt=t&q=' + encodeURIComponent(text), 10000);
-  const d = await r.json();
-  return d[0].map(x => x[0]).join('');
+/* ---------- الترجمة (عدة مصادر + إعادة محاولة + حفظ محلي) ---------- */
+const TR_CACHE = (() => { try { return JSON.parse(localStorage.getItem('yt-de-tr') || '{}'); } catch (e) { return {}; } })();
+function saveTr() {
+  try {
+    const k = Object.keys(TR_CACHE);
+    if (k.length > 800) k.slice(0, 200).forEach(x => delete TR_CACHE[x]);
+    localStorage.setItem('yt-de-tr', JSON.stringify(TR_CACHE));
+  } catch (e) {}
 }
-function ensureTr(i) {
-  const c = cues[i]; if (!c) return Promise.resolve('');
-  if (!c.p) c.p = trans(c.text).catch(() => '⚠️ تعذرت الترجمة').then(a => {
-    c.ar = a;
-    const el = document.querySelector(`.ln[data-i="${i}"] .a`); if (el) el.textContent = a;
-    if (i === cur) $('ar').textContent = a;
+
+const TR_SOURCES = [
+  async t => {
+    const r = await fetchT('https://translate.googleapis.com/translate_a/single?client=gtx&sl=de&tl=ar&dt=t&q=' + encodeURIComponent(t), 8000);
+    if (!r.ok) throw 0;
+    const d = await r.json();
+    return d[0].map(x => x[0]).join('');
+  },
+  async t => {
+    const r = await fetchT('https://api.mymemory.translated.net/get?langpair=de%7Car&q=' + encodeURIComponent(t), 8000);
+    if (!r.ok) throw 0;
+    const d = await r.json();
+    const a = d && d.responseData && d.responseData.translatedText;
+    if (!a || Number(d.responseStatus) !== 200) throw 0;
     return a;
-  });
+  },
+  async t => {
+    const r = await fetchT('https://lingva.ml/api/v1/de/ar/' + encodeURIComponent(t), 8000);
+    if (!r.ok) throw 0;
+    const d = await r.json();
+    if (!d.translation) throw 0;
+    return d.translation;
+  }
+];
+let trGood = 0;
+
+async function trans(text) {
+  if (TR_CACHE[text]) return TR_CACHE[text];
+  for (let k = 0; k < TR_SOURCES.length; k++) {
+    const idx = (trGood + k) % TR_SOURCES.length;
+    try {
+      const a = await TR_SOURCES[idx](text);
+      if (a && a.trim()) { trGood = idx; TR_CACHE[text] = a; saveTr(); return a; }
+    } catch (e) {}
+  }
+  throw new Error('translate');
+}
+
+function paintTr(i, txt) {
+  const el = document.querySelector(`.ln[data-i="${i}"] .a`); if (el) el.textContent = txt;
+  if (i === cur) $('ar').textContent = txt;
+}
+
+function ensureTr(i, tries = 0) {
+  const c = cues[i]; if (!c) return Promise.resolve('');
+  if (c.ar) return Promise.resolve(c.ar);
+  if (!c.p) {
+    c.p = trans(c.text).then(a => { c.ar = a; paintTr(i, a); return a; })
+      .catch(() => {
+        c.p = null;   // لا نحفظ الفشل: نسمح بإعادة المحاولة
+        if (i === cur && !c.ar) $('ar').textContent = '⚠️ تعذرت الترجمة، جاري إعادة المحاولة...';
+        if (tries < 3) setTimeout(() => { if (!c.ar) ensureTr(i, tries + 1); }, 2500 * (tries + 1));
+        return '';
+      });
+  }
   return c.p;
 }
+
 async function prefetch(myToken) {
   let n = 0;
-  const worker = async () => { while (n < cues.length && myToken === token) { await ensureTr(n++); } };
-  await Promise.all([worker(), worker(), worker(), worker()]);
-  if (myToken === token) status('اكتمل جلب السكريبت والترجمة', true);
+  const w = async () => { while (n < cues.length && myToken === token) await ensureTr(n++); };
+  await Promise.all([w(), w()]);
+  if (myToken === token) {
+    const miss = cues.filter(c => !c.ar).length;
+    status(miss ? `اكتمل جلب السكريبت (${miss} جملة ستُترجم عند وصولها)` : 'اكتمل جلب السكريبت والترجمة', true);
+  }
 }
 
 /* ---------- العرض ---------- */
