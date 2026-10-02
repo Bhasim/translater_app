@@ -234,10 +234,8 @@ applySettings(false);
 /* ---------- مزامنة التظليل مع الصوت ---------- */
 let SYNC = 1;
 try { const v = localStorage.getItem('yt-de-sync'); if (v !== null && !isNaN(parseFloat(v))) SYNC = parseFloat(v); } catch (e) {}
-$('syn').value = SYNC; $('synv').textContent = SYNC.toFixed(1);
-$('syn').addEventListener('input', () => {
-  SYNC = parseFloat($('syn').value);
-  $('synv').textContent = SYNC.toFixed(1);
+$('syn').value = SYNC; $('synv').textContent = SYNC.toFixed(1);$('syn').addEventListener('input', () => {
+  SYNC = parseFloat($('syn').value);$('synv').textContent = SYNC.toFixed(1);
   try { localStorage.setItem('yt-de-sync', SYNC); } catch (e) {}
 });
 
@@ -468,7 +466,7 @@ function onState(e) {
 /* ---------- التشغيل ---------- */
 function loadCues(list, msg) {
   cues = list; cur = -1; token++;
-  buildList(); $('de').textContent = '...'; $('ar').textContent = '...';
+  buildList(); $('de').textContent = '...';$('ar').textContent = '...';
   status(msg, true);
   prefetch(token);
 }
@@ -476,8 +474,7 @@ function loadCues(list, msg) {
 async function startApp() {
   const id = extractId($('url').value);
   if (!id) return status('⚠️ الرابط غير صالح. تأكد من نسخ رابط فيديو يوتيوب كاملاً.');
-  $('go').disabled = true; cues = []; cur = -1; token++;
-  $('list').innerHTML = '';
+  $('go').disabled = true; cues = []; cur = -1; token++;$('list').innerHTML = '';
   status('جاري جلب السكريبت الألماني...');
 
   await apiP;
@@ -501,11 +498,17 @@ function useText(txt) {
 }
 
 $('go').onclick = startApp;
-$('url').addEventListener('keydown', e => { if (e.key === 'Enter') startApp(); });
-$('tList').onclick = () => { const l = $('list'); l.style.display = l.style.display === 'block' ? 'none' : 'block'; };
-$('tManual').onclick = () => { const m = $('manual'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
-$('useRaw').onclick = () => useText($('raw').value);
-$('file').onchange = e => { const f = e.target.files[0]; if (f) f.text().then(useText); };
+$('url').addEventListener('keydown', e => { if (e.key === 'Enter') startApp(); });$('tList').onclick = () => { const l = $('list'); l.style.display = l.style.display === 'block' ? 'none' : 'block'; };$('tManual').onclick = () => { const m = $('manual'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };$('useRaw').onclick = () => useText($('raw').value);$('file').onchange = e => { const f = e.target.files[0]; if (f) f.text().then(useText); };
+
+/* ---------- استلام الرابط تلقائياً من اختصار مشاركة الآيفون ---------- */
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const videoUrl = urlParams.get('url');
+  if (videoUrl) {
+    $('url').value = decodeURIComponent(videoUrl);
+    startApp();
+  }
+});
 </script>
 </body>
 </html>
