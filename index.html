@@ -210,6 +210,8 @@ const WORKER = 'https://withered-bird-6773.hasimbaha00.workers.dev';
 
 const $ = id => document.getElementById(id);
 let player, apiReady, cues = [], cur = -1, raf = 0, wordEls = [], activeW = -1, token = 0;
+let lastHighlightedW = -1; // تتبع الكلمات لتجنب القفز أثناء النطق السريع
+
 const apiP = new Promise(r => apiReady = r);
 window.onYouTubeIframeAPIReady = () => apiReady();
 
@@ -310,7 +312,6 @@ function parseSub(txt) {
   return finalize(list);
 }
 
-// دمج المقاطع القصيرة في جمل كاملة (سطران أو أكثر)
 function mergeSentences(list) {
   const out = []; let g = null;
   const flush = () => { if (g) { out.push(g); g = null; } };
@@ -333,7 +334,7 @@ function finalize(list) {
   return out;
 }
 
-/* ---------- الترجمة (عدة مصادر + إعادة محاولة + حفظ محلي) ---------- */
+/* ---------- الترجمة ---------- */
 const TR_CACHE = (() => { try { return JSON.parse(localStorage.getItem('yt-de-tr') || '{}'); } catch (e) { return {}; } })();
 function saveTr() {
   try {
@@ -391,7 +392,7 @@ function ensureTr(i, tries = 0) {
   if (!c.p) {
     c.p = trans(c.text).then(a => { c.ar = a; paintTr(i, a); return a; })
       .catch(() => {
-        c.p = null;   // لا نحفظ الفشل: نسمح بإعادة المحاولة
+        c.p = null;
         if (i === cur && !c.ar) $('ar').textContent = '⚠️ تعذرت الترجمة، جاري إعادة المحاولة...';
         if (tries < 3) setTimeout(() => { if (!c.ar) ensureTr(i, tries + 1); }, 2500 * (tries + 1));
         return '';
@@ -410,7 +411,7 @@ async function prefetch(myToken) {
   }
 }
 
-/* ---------- العرض ---------- */
+/* ---------- العرض والتظليل المحسّن ---------- */
 function mmss(t) { t = Math.floor(t); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
 function buildList() {
   $('list').innerHTML = cues.map((c, i) =>
@@ -427,6 +428,7 @@ function showCue(i) {
   const c = cues[i], de = $('de'); de.textContent = '';
   wordEls = c.words.map(w => { const s = document.createElement('span'); s.className = 'w'; s.textContent = w.w; de.append(s, ' '); return s; });
   activeW = -1;
+  lastHighlightedW = -1; // إعادة ضبط المؤشر عند الانتقال لجملة جديدة
   $('ar').textContent = c.ar || 'جاري الترجمة...';
   ensureTr(i); ensureTr(i + 1);
   document.querySelectorAll('.ln.cur').forEach(x => x.classList.remove('cur'));
@@ -444,13 +446,35 @@ function tick() {
   if (player && player.getCurrentTime && cues.length) {
     const t = player.getCurrentTime() + SYNC, i = findCue(t);
     if (i >= 0 && i !== cur) showCue(i);
+    
     if (cur >= 0) {
-      const ws = cues[cur].words; let a = -1;
-      for (let k = 0; k < ws.length; k++) if (t >= ws[k].s && t < ws[k].e) { a = k; break; }
-      if (a !== activeW) {
-        if (activeW >= 0) wordEls[activeW].classList.remove('on');
-        if (a >= 0) wordEls[a].classList.add('on');
-        activeW = a;
+      const ws = cues[cur].words; 
+      let targetW = -1;
+      
+      // تحديد الكلمة المفترض الوصول إليها وفقاً للوقت
+      for (let k = 0; k < ws.length; k++) { 
+        if (t >= ws[k].s) { 
+          targetW = k; 
+        } 
+      }
+
+      // التظليل الذكي لحماية الكلمات الممنوعة من التخطي عند النطق السريع
+      if (targetW !== activeW) {
+        wordEls.forEach(el => el.classList.remove('on'));
+
+        if (targetW >= 0) {
+          if (lastHighlightedW !== -1 && targetW - lastHighlightedW > 1) {
+            // تظليل الكلمة الفائتة والكلمة الحالية معاً
+            for (let m = lastHighlightedW + 1; m <= targetW; m++) {
+              if (wordEls[m]) wordEls[m].classList.add('on');
+            }
+          } else {
+            // التظليل الطبيعي للكلمة
+            if (wordEls[targetW]) wordEls[targetW].classList.add('on');
+          }
+          lastHighlightedW = targetW;
+        }
+        activeW = targetW;
       }
     }
   }
